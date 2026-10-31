@@ -1,0 +1,71 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cyber Nanban AI</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #08111f;
+      color: white;
+      text-align: center;
+      padding: 40px 15px;
+    }
+    .container {
+      max-width: 600px;
+      margin: 60px auto;
+      padding: 30px;
+      background: #142238;
+      border-radius: 15px;
+    }
+    h1 { color: #38bdf8; }
+    p { color: #cbd5e1; }
+    textarea {
+      width: 100%;
+      height: 120px;
+      box-sizing: border-box;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+    button {
+      margin-top: 15px;
+      padding: 12px 25px;
+      background: #0284c7;
+      color: white;
+      border: 0;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🛡️ Cyber Nanban AI</h1>
+    <p>Your Friendly AI Cybersecurity Assistant</p>
+    <textarea id="question" placeholder="Ask your cybersecurity question..."></textarea>
+    <br>
+    <button onclick="askAI()">Ask AI</button>
+    <p id="answer"></p>
+  </div>
+
+  <script>
+    function askAI() {
+      const question = document.getElementById("question").value.trim();
+      const answer = document.getElementById("answer");
+
+      if (!question) {
+        answer.textContent = "Please enter your question.";
+        return;
+      }
+
+      answer.textContent =
+        "Your question: " + question +
+        " | AI connection will be added in the next step.";
+    }
+  </script>
+</body>
+</html>
