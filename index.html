@@ -53,19 +53,37 @@
   </div>
 
   <script>
-    function askAI() {
-      const question = document.getElementById("question").value.trim();
-      const answer = document.getElementById("answer");
+  async function askAI() {
+    const question = document.getElementById("question").value.trim();
+    const answer = document.getElementById("answer");
 
-      if (!question) {
-        answer.textContent = "Please enter your question.";
-        return;
+    if (!question) {
+      answer.textContent = "Please enter your question.";
+      return;
+    }
+
+    answer.textContent = "Cyber Nanban is thinking...";
+
+    try {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ message: question })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "AI connection failed.");
       }
 
-      answer.textContent =
-        "Your question: " + question +
-        " | AI connection will be added in the next step.";
+      answer.textContent = data.reply;
+    } catch (error) {
+      answer.textContent = "Sorry, AI connection failed. Please try again.";
     }
+  }
   </script>
 </body>
 </html>
