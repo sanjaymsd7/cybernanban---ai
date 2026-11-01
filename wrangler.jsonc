@@ -1,9 +1,13 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "cybernanban",
+  "name": "cybernanban-ai",
+  "main": "worker.js",
   "compatibility_date": "2026-11-01",
   "assets": {
     "directory": ".",
-    "not_found_handling": "single-page-application"
+    "binding": "ASSETS"
+  },
+  "ai": {
+    "binding": "AI"
   }
 }
