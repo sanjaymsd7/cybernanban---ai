@@ -5,7 +5,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Cyber Nanban AI</title>
+
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.6/dist/purify.min.js"></script>
+
 <style>
 body {
   margin: 0;
@@ -22,6 +25,7 @@ body {
   border-radius: 15px;
 }
 h1 { color: #38bdf8; text-align: center; }
+h2, h3 { color: #38bdf8; }
 .subtitle { text-align: center; color: #cbd5e1; }
 textarea {
   width: 100%;
@@ -32,15 +36,20 @@ textarea {
   font-size: 16px;
 }
 button {
-  margin-top: 12px;
-  padding: 12px 22px;
+  margin: 8px 5px 8px 0;
+  padding: 12px 18px;
   background: #0284c7;
   color: white;
   border: 0;
   border-radius: 8px;
-  font-size: 16px;
+  font-size: 15px;
   cursor: pointer;
 }
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.secondary { background: #475569; }
 #answer {
   text-align: left;
   margin-top: 22px;
@@ -68,55 +77,103 @@ button {
 }
 #answer a { color: #38bdf8; }
 .copy-btn { margin-bottom: 12px; }
+
+.quiz-box {
+  margin-top: 25px;
+  padding: 18px;
+  background: #0b1728;
+  border: 1px solid #334155;
+  border-radius: 12px;
+}
+.quiz-option {
+  display: block;
+  padding: 13px;
+  margin: 10px 0;
+  background: #1e3048;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.quiz-option input { margin-right: 10px; }
+.feedback {
+  padding: 13px;
+  margin-top: 15px;
+  background: #172d40;
+  border-radius: 8px;
+  line-height: 1.6;
+}
+#quizStatus { color: #bae6fd; }
 </style>
 </head>
+
 <body>
 <div class="container">
+
 <h1>🛡️ Cyber Nanban AI</h1>
 <p class="subtitle">Your Friendly AI Cybersecurity Assistant</p>
 
-<textarea id="question" placeholder="Ask your cybersecurity question..."></textarea>
+<textarea id="question"
+placeholder="Ask anything about cybersecurity..."></textarea>
+
 <br>
 <button id="askButton" onclick="askAI()">Ask AI</button>
+<button id="quizButton" onclick="startQuiz()">Smart Quiz</button>
 
 <div id="answer" aria-live="polite"></div>
+
+<div id="quizArea" class="quiz-box" hidden>
+  <h2>🧠 Cybersecurity Quiz</h2>
+  <p id="quizStatus"></p>
+  <h3 id="quizQuestion"></h3>
+  <div id="quizOptions"></div>
+  <div id="quizFeedback" class="feedback" hidden></div>
+  <button id="submitAnswer" onclick="checkAnswer()">Submit Answer</button>
+  <button id="nextQuestion" onclick="nextQuestion()" hidden>Next Question</button>
+  <button class="secondary" onclick="resetQuiz()">Exit Quiz</button>
+</div>
+
 </div>
 
 <script>
+const answerBox = document.getElementById("answer");
+
+async function callAI(message) {
+  const response = await fetch("/api/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message })
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || "AI connection failed.");
+  }
+
+  return data.reply || "";
+}
+
 async function askAI() {
   const question = document.getElementById("question").value.trim();
-  const answer = document.getElementById("answer");
   const button = document.getElementById("askButton");
 
   if (!question) {
-    answer.textContent = "Please enter your question.";
+    answerBox.textContent = "Please enter your question.";
     return;
   }
 
   button.disabled = true;
-  answer.textContent = "Cyber Nanban is thinking...";
+  answerBox.textContent = "Cyber Nanban is thinking...";
 
   try {
-    const response = await fetch("/api/chat", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ message: question })
-    });
+    const reply = await callAI(question);
+    const html = marked.parse(reply);
+    answerBox.innerHTML = DOMPurify.sanitize(html);
 
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.error || "AI connection failed.");
-    }
-
-    answer.innerHTML = marked.parse(data.reply || "No response received.");
-
-    answer.querySelectorAll("pre code").forEach(code => {
+    answerBox.querySelectorAll("pre code").forEach(code => {
       const copy = document.createElement("button");
       copy.textContent = "Copy command";
       copy.className = "copy-btn";
+
       copy.onclick = async () => {
         try {
           await navigator.clipboard.writeText(code.textContent);
@@ -125,14 +182,245 @@ async function askAI() {
           copy.textContent = "Copy unavailable";
         }
       };
+
       code.parentElement.after(copy);
     });
 
   } catch (error) {
-    answer.textContent = "Sorry, AI connection failed. Please try again.";
+    answerBox.textContent = "Sorry, AI connection failed. Please try again.";
   } finally {
     button.disabled = false;
   }
+}
+
+// SMART QUIZ
+
+let quizQuestions = [];
+let currentQuestion = 0;
+let score = 0;
+let selectedAnswer = null;
+let quizLocked = false;
+
+async function startQuiz() {
+  const request = document.getElementById("question").value.trim();
+  const quizButton = document.getElementById("quizButton");
+  const quizArea = document.getElementById("quizArea");
+
+  const topic = request || "General cybersecurity";
+
+  quizButton.disabled = true;
+  answerBox.textContent = "Generating your cybersecurity quiz...";
+
+  quizArea.hidden = true;
+
+  const prompt = `
+Create exactly 10 objective cybersecurity quiz questions.
+
+User's requested topic or instruction: ${topic}
+
+Understand the requested topic automatically.
+If multiple tools or topics are mentioned, include questions covering them.
+If the user requests a general quiz, choose a balanced selection
+from cybersecurity fundamentals, networking, Linux, VAPT,
+web security, SOC and security tools.
+
+Difficulty:
+Use beginner level unless the user requests intermediate or advanced.
+
+Return ONLY valid JSON. Do not use Markdown or code fences.
+
+Use exactly this structure:
+{
+  "questions": [
+    {
+      "question": "Question text",
+      "options": [
+        "Option A",
+        "Option B",
+        "Option C",
+        "Option D"
+      ],
+      "correctIndex": 0,
+      "explanation": "Explain why the correct answer is correct."
+    }
+  ]
+}
+
+Rules:
+- Exactly 10 questions.
+- correctIndex must be 0, 1, 2 or 3.
+- Exactly four options per question.
+- Only one correct answer per question.
+- Questions must be factually accurate.
+- Include practical cybersecurity concepts and tool usage.
+- Do not reveal the answer in the question.
+- Use simple English and useful explanations.
+- Keep all activities focused on authorized security testing.
+`;
+
+  try {
+    const reply = await callAI(prompt);
+
+    const cleaned = reply
+      .replace(/```json/gi, "")
+      .replace(/```/g, "")
+      .trim();
+
+    const start = cleaned.indexOf("{");
+    const end = cleaned.lastIndexOf("}");
+
+    if (start === -1 || end === -1) {
+      throw new Error("Invalid quiz response.");
+    }
+
+    const result = JSON.parse(cleaned.slice(start, end + 1));
+
+    if (!Array.isArray(result.questions) ||
+        result.questions.length !== 10 ||
+        !result.questions.every(q =>
+          typeof q.question === "string" &&
+          Array.isArray(q.options) &&
+          q.options.length === 4 &&
+          q.options.every(o => typeof o === "string") &&
+          Number.isInteger(q.correctIndex) &&
+          q.correctIndex >= 0 &&
+          q.correctIndex <= 3 &&
+          typeof q.explanation === "string"
+        )) {
+      throw new Error("Quiz format is incomplete.");
+    }
+
+    quizQuestions = result.questions;
+    currentQuestion = 0;
+    score = 0;
+    selectedAnswer = null;
+    quizLocked = false;
+
+    answerBox.textContent = "";
+    quizArea.hidden = false;
+    showQuestion();
+
+  } catch (error) {
+    answerBox.textContent =
+      "Could not create the quiz. Please try again.";
+  } finally {
+    quizButton.disabled = false;
+  }
+}
+
+function showQuestion() {
+  const q = quizQuestions[currentQuestion];
+
+  selectedAnswer = null;
+  quizLocked = false;
+
+  document.getElementById("quizStatus").textContent =
+    `Question ${currentQuestion + 1} of ${quizQuestions.length} | Score: ${score}`;
+
+  document.getElementById("quizQuestion").textContent = q.question;
+
+  const options = document.getElementById("quizOptions");
+  options.replaceChildren();
+
+  q.options.forEach((option, index) => {
+    const label = document.createElement("label");
+    label.className = "quiz-option";
+
+    const radio = document.createElement("input");
+    radio.type = "radio";
+    radio.name = "quizAnswer";
+    radio.value = index;
+
+    radio.addEventListener("change", () => {
+      selectedAnswer = index;
+    });
+
+    label.append(radio, document.createTextNode(option));
+    options.appendChild(label);
+  });
+
+  document.getElementById("quizFeedback").hidden = true;
+  document.getElementById("submitAnswer").hidden = false;
+  document.getElementById("submitAnswer").disabled = false;
+  document.getElementById("nextQuestion").hidden = true;
+}
+
+function checkAnswer() {
+  if (selectedAnswer === null || quizLocked) {
+    return;
+  }
+
+  quizLocked = true;
+
+  const q = quizQuestions[currentQuestion];
+  const feedback = document.getElementById("quizFeedback");
+  const correct = selectedAnswer === q.correctIndex;
+
+  if (correct) {
+    score++;
+    feedback.textContent = "✅ Correct! " + q.explanation;
+  } else {
+    feedback.textContent =
+      "❌ Incorrect. Correct answer: " +
+      q.options[q.correctIndex] + ". " + q.explanation;
+  }
+
+  feedback.hidden = false;
+  document.getElementById("submitAnswer").disabled = true;
+
+  const nextButton = document.getElementById("nextQuestion");
+  nextButton.textContent =
+    currentQuestion === quizQuestions.length - 1
+      ? "View Results"
+      : "Next Question";
+
+  nextButton.hidden = false;
+}
+
+function nextQuestion() {
+  currentQuestion++;
+
+  if (currentQuestion >= quizQuestions.length) {
+    showResults();
+    return;
+  }
+
+  showQuestion();
+}
+
+function showResults() {
+  document.getElementById("quizStatus").textContent = "Quiz completed!";
+  document.getElementById("quizQuestion").textContent =
+    `Your final score: ${score}/10`;
+
+  document.getElementById("quizOptions").replaceChildren();
+
+  const result = document.createElement("p");
+  result.textContent =
+    score >= 8 ? "Excellent work! Keep learning." :
+    score >= 5 ? "Good effort! Revise the incorrect answers." :
+    "Keep practising. Review the explanations and try again.";
+
+  document.getElementById("quizOptions").appendChild(result);
+
+  document.getElementById("quizFeedback").hidden = true;
+  document.getElementById("submitAnswer").hidden = true;
+  document.getElementById("nextQuestion").hidden = true;
+
+  const retry = document.createElement("button");
+  retry.textContent = "Start Another Quiz";
+  retry.onclick = startQuiz;
+  document.getElementById("quizOptions").appendChild(retry);
+}
+
+function resetQuiz() {
+  quizQuestions = [];
+  currentQuestion = 0;
+  score = 0;
+  selectedAnswer = null;
+  quizLocked = false;
+
+  document.getElementById("quizArea").hidden = true;
 }
 </script>
 </body>
