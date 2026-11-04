@@ -10,9 +10,9 @@
   "orientation": "portrait",
   "icons": [
     {
-      "src": "Cyber_Nanban_Full_Logo.jpg",
-      "sizes": "512x512",
-      "type": "image/jpeg",
+      "src": "./Cyber nanban icon.png",
+"sizes": "512x512",
+"type": "image/png",
       "purpose": "any"
     }
   ]
