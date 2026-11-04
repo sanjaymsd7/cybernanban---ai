@@ -5,14 +5,13 @@
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#050b18",
-  "theme_color": "#050b18",
-  "orientation": "portrait",
+  "background_color": "#050505",
+  "theme_color": "#050505",
   "icons": [
     {
-      "src": "./Cyber nanban icon.png",
-"sizes": "512x512",
-"type": "image/png",
+      "src": "./Cyber_Nanban_Full_Logo.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
       "purpose": "any"
     }
   ]
