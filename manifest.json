@@ -1,25 +1,18 @@
-
 {
-  "name": "CyberNanban AI",
-  "short_name": "CyberNanban",
-  "description": "Your friendly AI cybersecurity assistant",
-  "start_url": "/",
-  "scope": "/",
+  "name": "Cyber Nanban AI",
+  "short_name": "Cyber Nanban",
+  "description": "Your Friendly AI Cybersecurity Assistant",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
+  "background_color": "#050b18",
+  "theme_color": "#050b18",
   "orientation": "portrait",
-  "background_color": "#101827",
-  "theme_color": "#101827",
   "icons": [
     {
-      "src": "/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icon-512.png",
+      "src": "Cyber_Nanban_Full_Logo.jpg",
       "sizes": "512x512",
-      "type": "image/png",
+      "type": "image/jpeg",
       "purpose": "any"
     }
   ]
