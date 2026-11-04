@@ -1,6 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <link rel="icon" type="image/jpeg" href="Cyber_Nanban_Full_Logo.jpg">
+<meta name="theme-color" content="#050b18">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Cyber Nanban AI">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Cyber Nanban AI</title>
@@ -64,5 +68,12 @@
       Educational use only • Practice in authorized labs
     </footer>
   </main>
+  <script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./service-worker.js');
+  });
+}
+  </script>
 </body>
 </html>
