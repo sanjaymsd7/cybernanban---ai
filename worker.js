@@ -5,7 +5,7 @@ export default {
 
     if (url.pathname === "/api/chat" && request.method === "POST") {
       try {
-        const { message } = await request.json();
+        const { message, stream } = await request.json();
 
         if (!message || typeof message !== "string") {
           return Response.json(
@@ -29,26 +29,36 @@ Topics: Kali Linux, Nmap, Burp Suite, SQL injection, XSS, OWASP, Wireshark, Gobu
 RULES:
 - Explain concepts in simple language.
 - Match the language and script used by the user: English, Tamil or Tanglish.
-- Explain commands, symbols and parameters when relevant.
-- Give step-by-step practical examples using authorized labs such as DVWA and Metasploitable.
+- Explain commands and symbols when relevant.
+- Give safe practical examples using authorized labs such as DVWA and Metasploitable.
 - Explain detection, prevention and remediation when relevant.
-- Include an interview question when useful.
-- For SQL injection, explain how conditions such as '1'='1' work and why prepared statements prevent injection.
+- Include interview questions when useful.
+- Explain SQL injection conditions and prepared statements.
 - Distinguish suspicious input from confirmed malicious activity.
-- Explain risks before potentially destructive commands.
-- Only support authorized testing and defensive security.
+- Explain risks before destructive commands.
+- Only support authorized security testing.
 
-Use clear Markdown headings and concise answers.
-Avoid unnecessary sections. Be friendly, patient and accurate.`
+Use clear Markdown and concise answers.
+Be friendly, patient and accurate.`
               },
               {
                 role: "user",
                 content: message
               }
             ],
-            max_tokens: 600
+            max_tokens: 600,
+            stream: stream === true
           }
         );
+
+        if (stream === true) {
+          return new Response(result, {
+            headers: {
+              "Content-Type": "text/event-stream",
+              "Cache-Control": "no-cache",
+            }
+          });
+        }
 
         return Response.json({
           reply: result.response
@@ -67,4 +77,3 @@ Avoid unnecessary sections. Be friendly, patient and accurate.`
     return env.ASSETS.fetch(request);
   }
 };
-
