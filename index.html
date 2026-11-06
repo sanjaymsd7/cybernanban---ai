@@ -2,26 +2,21 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#b00000">
-<link rel="icon" type="image/png" href="./Cyber nanban icon.png">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#101827">
   <link rel="manifest" href="/manifest.json">
-
+  <link rel="icon" type="image/png" href="./Cyber nanban icon.png">
   <title>CyberNanban AI</title>
 
   <style>
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     body {
       margin: 0;
       min-height: 100vh;
       background: #101827;
-      color: #ffffff;
+      color: white;
       font-family: Arial, sans-serif;
       display: flex;
       flex-direction: column;
@@ -35,9 +30,7 @@
       gap: 12px;
     }
 
-    .logo {
-      font-size: 27px;
-    }
+    .logo { font-size: 27px; }
 
     header h2 {
       margin: 0;
@@ -131,9 +124,7 @@
       font-family: inherit;
     }
 
-    #question::placeholder {
-      color: #94a3b8;
-    }
+    #question::placeholder { color: #94a3b8; }
 
     #send {
       background: #2563eb;
@@ -166,25 +157,11 @@
     }
 
     @media (max-width: 600px) {
-      header {
-        padding: 15px;
-      }
-
-      main {
-        padding: 12px;
-      }
-
-      .welcome h1 {
-        font-size: 25px;
-      }
-
-      #send {
-        padding: 12px;
-      }
-
-      .message {
-        max-width: 95%;
-      }
+      header { padding: 15px; }
+      main { padding: 12px; }
+      .welcome h1 { font-size: 25px; }
+      #send { padding: 12px; }
+      .message { max-width: 95%; }
     }
   </style>
 </head>
@@ -200,7 +177,6 @@
 </header>
 
 <main>
-
   <section class="welcome">
     <h1>Hello, நண்பா! 👋</h1>
     <p>
@@ -213,12 +189,10 @@
   <div id="chat"></div>
 
   <div class="input-area">
-    <textarea
-      id="question"
+    <textarea id="question"
       rows="1"
       placeholder="Ask anything..."
-      aria-label="Ask CyberNanban AI"
-    ></textarea>
+      aria-label="Ask CyberNanban AI"></textarea>
 
     <button id="send" aria-label="Send message">➤</button>
   </div>
@@ -230,9 +204,8 @@
   <footer>
     CyberNanban AI • Learn. Practice. Protect.
   </footer>
-
 </main>
-
+  
 <script>
   const chat = document.getElementById("chat");
   const question = document.getElementById("question");
@@ -241,25 +214,17 @@
   const quotes = [
     "வென்றால் மகிழ்ச்சி, தோற்றால் பயிற்சி! 💪",
     "Small steps every day lead to big success! 🚀",
-    "தொடர்ந்து முயற்சி செய் நண்பா! வெற்றி நிச்சயம்! ❤️",
-    "Never stop learning. Never stop growing! 🔥",
-    "Mistakes are proof that you are trying! 💯"
+    "தொடர்ந்து முயற்சி செய் நண்பா! ❤️",
+    "Never stop learning! 🔥"
   ];
 
-  // Automatic language detection
   function detectLanguage(text) {
-    if (/[\u0B80-\u0BFF]/.test(text)) {
-      return "ta";
-    }
+    if (/[\u0B80-\u0BFF]/.test(text)) return "ta";
 
-    const tanglishPattern =
-      /\b(naan|nan|neenga|ungal|epdi|eppadi|enna|irukka|irukku|pannu|pannunga|sollu|venum|illai|illa|seri|romba|nalla|inga|anga|poga|vandha|saptiya|sapten|bro|nanba)\b/i;
+    const pattern =
+      /\b(naan|nan|neenga|ungal|epdi|eppadi|enna|irukka|irukku|pannu|pannunga|sollu|venum|illai|illa|seri|romba|nalla|inga|anga|bro|nanba)\b/i;
 
-    if (tanglishPattern.test(text)) {
-      return "tl";
-    }
-
-    return "en";
+    return pattern.test(text) ? "tl" : "en";
   }
 
   function addMessage(text, type) {
@@ -268,6 +233,7 @@
     div.textContent = text;
     chat.appendChild(div);
     chat.scrollTop = chat.scrollHeight;
+    return div;
   }
 
   async function askAI() {
@@ -284,6 +250,8 @@
     send.disabled = true;
     send.textContent = "⏳";
 
+    const botMessage = addMessage("Thinking...", "bot");
+
     try {
       const response = await fetch("/api/chat", {
         method: "POST",
@@ -292,7 +260,8 @@
         },
         body: JSON.stringify({
           message: text,
-          language: language
+          language: language,
+          stream: true
         })
       });
 
@@ -300,48 +269,80 @@
         throw new Error("AI request failed");
       }
 
-      const data = await response.json();
+      if (!response.body) {
+        throw new Error("Streaming unavailable");
+      }
 
-      const answer =
-        data.reply || data.response || data.answer;
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+
+      let buffer = "";
+      let answer = "";
+
+      function processLine(line) {
+        line = line.trim();
+
+        if (!line.startsWith("data:")) return;
+
+        const content = line.slice(5).trim();
+
+        if (!content || content === "[DONE]") return;
+
+        const data = JSON.parse(content);
+
+        if (data.response) {
+          answer += data.response;
+          botMessage.textContent = answer;
+          chat.scrollTop = chat.scrollHeight;
+        }
+
+        if (data.error) {
+          throw new Error(data.error);
+        }
+      }
+
+      while (true) {
+        const { value, done } = await reader.read();
+
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+
+        const lines = buffer.split("\n");
+        buffer = lines.pop();
+
+        for (const line of lines) {
+          processLine(line);
+        }
+      }
+
+      buffer += decoder.decode();
+
+      if (buffer.trim()) {
+        processLine(buffer);
+      }
 
       if (!answer) {
-        throw new Error("Empty AI response");
+        throw new Error("No AI response received");
       }
 
       const greetings = {
-        en: [
-          "Good question bro! 👏",
-          "Nice work, bro! 🔥"
-        ],
-        ta: [
-          "அருமையான கேள்வி நண்பா! 👏",
-          "நல்ல முயற்சி நண்பா! 🔥"
-        ],
-        tl: [
-          "Super question bro! 👏",
-          "Nalla work nanba! 🔥"
-        ]
+        en: "Good question bro! 👏\n\n",
+        ta: "அருமையான கேள்வி நண்பா! 👏\n\n",
+        tl: "Super question nanba! 👏\n\n"
       };
 
-      const options = greetings[language];
-
-      const greeting =
-        options[Math.floor(Math.random() * options.length)];
-
-      addMessage(greeting + "\n\n" + answer, "bot");
+      botMessage.textContent =
+        greetings[language] + answer;
 
       document.getElementById("quote").textContent =
         quotes[Math.floor(Math.random() * quotes.length)];
 
     } catch (error) {
-      const errors = {
-        en: "Sorry bro! AI connection problem. Please check Worker API.",
-        ta: "மன்னிக்கவும் நண்பா! AI இணைப்பில் பிரச்சினை உள்ளது.",
-        tl: "Sorry nanba! AI connection problem. Worker API check pannanum."
-      };
+      console.error(error);
 
-      addMessage(errors[language], "bot");
+      botMessage.textContent =
+        "Sorry bro! AI connection problem. Please try again.";
 
     } finally {
       send.disabled = false;
@@ -365,16 +366,22 @@
       Math.min(question.scrollHeight, 120) + "px";
   });
 </script>
-  <script>
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/sw.js")
-      .then(() => console.log("CyberNanban PWA ready!"))
-      .catch(error => console.error("PWA error:", error));
-  });
-}
-  </script>
+  
+<!-- PWA Service Worker Registration -->
+<script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker
+        .register("./service-worker.js")
+        .then(() => console.log("Cyber Nanban PWA ready!"))
+        .catch(error =>
+          console.error("Service Worker Error:", error)
+        );
+    });
+  }
+</script>
 
 </body>
 </html>
 
+  
